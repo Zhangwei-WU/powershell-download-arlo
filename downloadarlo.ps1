@@ -48,6 +48,14 @@ function GetSaveFileName
     {
         $ext = "mp4"
     }
+	elseif($contentType -eq "image/jpg")
+    {
+        $ext = "jpg"
+    }
+	else
+	{
+		Write-Error "Unknown ContentType: $contentType"
+	}
 
     return "$baseLocation\$($createdDate)\$($reason.ToUpperInvariant())_$($deviceId)_$($name).$ext"
 }
