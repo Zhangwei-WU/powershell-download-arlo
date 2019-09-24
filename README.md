@@ -3,7 +3,7 @@ powershell scripts to download arlo library to local
 
 
 ## how to use
-how to run: ps> .\downloadarlo.ps1 -UserName "<email address of arlo account>" -Password "<password of arlo account>" -BaseDir "<local disk root dir, eg. d:\arlo>" -TraceBackDays "<trace back days, from 0 to 6>"
+how to run: ps> .\downloadarlo.ps1 -UserName "<email address of arlo account>" -Password "<password of arlo account>" -BaseDir "<local disk root dir, eg. d:\arlo>" -TraceBackDays "<trace back days, from 0 to 6>" \[-AddTimeStamp\]
 
 or in cmd: > powershell.exe -Command ".\downloadarlo.ps1" -UserName "<email address of arlo account>" -Password "<password of arlo account>" -BaseDir "<local disk root dir, eg. d:\arlo>" -TraceBackDays "<trace back days, from 0 to 6>"
 
@@ -17,3 +17,10 @@ setup a schedule job to run script for every 30 mins (or any interval as you lik
 
 ## customize
 feel free to customize whatever you want :) 
+
+## how to use -AddTimeStamp
+download ffmpeg.exe from https://ffmpeg.org unzip it, put ffmpeg.exe to the same directory of the powershell script
+
+modify function GetFfmpegDrawText if you want to output text format
+
+![video with timestamp](https://github.com/Zhangwei-WU/powershell-download-arlo/raw/master/screenshoot.jpg "video with timestamp")

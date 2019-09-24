@@ -1,4 +1,4 @@
-﻿param([string]$UserName, [string]$Password, [string]$BaseDir, [int]$TraceBackDays)
+﻿param([string]$UserName, [string]$Password, [string]$BaseDir, [int]$TraceBackDays, [switch]$AddTimeStamp)
 
 function GetArloAccessToken
 {
@@ -39,10 +39,25 @@ function GetArloLibrary
     return $null
 }
 
+function GetDeviceName
+{
+	param([string]$deviceId)
+	
+    $deviceName = $deviceId
+    #if($deviceId -eq "some device id...")
+    #{
+    #    $deviceName = "some devie name..."
+    #}
+	
+	return $deviceName
+}
+
 function GetSaveFileName
 {
     param([string]$baseLocation, [string]$createdDate, [string]$deviceId, [string]$name, [string]$reason, [string]$contentType)
 
+	$deviceName = GetDeviceName $deviceId
+	
     $ext = "unknown"
     if($contentType -eq "video/mp4")
     {
@@ -57,12 +72,22 @@ function GetSaveFileName
 		Write-Error "Unknown ContentType: $contentType"
 	}
 
-    return "$baseLocation\$($createdDate)\$($reason.ToUpperInvariant())_$($deviceId)_$($name).$ext"
+    return "$baseLocation\$($createdDate)\$($reason.ToUpperInvariant())_$($deviceName)_$($name).$ext"
+}
+
+function GetFfmpegDrawText
+{
+    param([long]$createdTime, [string]$deviceId)
+	
+	$deviceName = (GetDeviceName $deviceId).ToUpperInvariant()
+
+	# https://ffmpeg.org/ffmpeg-filters.html#drawtext-1
+	return "drawtext=font=Lucida Console:fontcolor=white:fontsize=32:x=8:y=8:box=1:boxcolor=black@0.7:boxborderw=8:text='%{pts\:localtime\:$($createdTime / 1000)} LOCATION\: $deviceName'"
 }
 
 function DownloadArloRecords
 {
-    param([string]$userName, [string]$password, [string]$baseLocation, [int]$traceBackDays)
+    param([string]$userName, [string]$password, [string]$baseLocation, [int]$traceBackDays, [bool]$addTimeStamp)
 
     $token = GetArloAccessToken $userName $password
 
@@ -72,7 +97,7 @@ function DownloadArloRecords
         return
     }
 
-    if($traceBackDays -ge 6)
+    if($traceBackDays -gt 6)
     {
         $traceBackDays = 6
     }
@@ -98,15 +123,37 @@ function DownloadArloRecords
             continue
         }
 
+		$ext = [System.IO.Path]::GetExtension($fileName)
+		
+		$tempFileName = "$($env:temp)\$(New-Guid)$ext"
+		Write-Host "Download $($record.presignedContentUrl) to $tempFileName"
+        Invoke-WebRequest $record.presignedContentUrl -OutFile $tempFileName
+
         $dir = [System.IO.Path]::GetDirectoryName($fileName)
         if(-not (Test-Path $dir)) 
         {
             New-Item $dir -ItemType Directory -Force
         }
-
-        Write-Host $record.presignedContentUrl
-        Invoke-WebRequest $record.presignedContentUrl -OutFile $fileName
+		
+		if($addTimeStamp -and $ext -eq ".mp4" -and (Test-Path "ffmpeg.exe"))
+		{
+			$tempOutFileName = "$($env:temp)\$(New-Guid)$ext"
+			$vfParams = GetFfmpegDrawText $record.localCreatedDate $record.deviceId
+			Write-Host $vfParams
+			Start-Process "ffmpeg.exe" -ArgumentList @("-i", $tempFileName, "-vf", "`"$vfParams`"", $tempOutFileName) -NoNewWindow -Wait
+			if(Test-Path $tempOutFileName)
+			{
+				Remove-Item -LiteralPath $tempFileName
+				$tempFileName = $tempOutFileName
+			}
+			else
+			{
+				Write-Error "cannot find ffmpeg output"
+			}
+		}
+		
+		Move-Item -Path $tempFileName -Destination $fileName
     }
 }
 
-DownloadArloRecords $UserName $Password $BaseDir $TraceBackDays
+DownloadArloRecords $UserName $Password $BaseDir $TraceBackDays $($AddTimeStamp.IsPresent)
