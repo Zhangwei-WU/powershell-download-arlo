@@ -184,7 +184,7 @@ function DownloadArloRecords
 		Write-Host "Download $($record.presignedContentUrl) to $tempFileName"
         Invoke-WebRequest $record.presignedContentUrl -OutFile $tempFileName
 		
-		if($addTimeStamp -and $ext -eq ".mp4" -and (Test-Path "ffmpeg.exe"))
+		if($addTimeStamp -and $ext -eq ".mp4" -and (Test-Path ".\ffmpeg.exe"))
 		{
 			$tempOutFileName = "$($env:temp)\$(New-Guid)$ext"
 			$vfParams = GetFfmpegDrawText $record.localCreatedDate $record.deviceId $deviceName
